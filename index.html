@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de CMV e Precificação por Quilo | Ajinomoto Food Service</title>
+
+<!-- O site já carrega Quicksand. Ao embutir no WordPress, esta linha pode ser REMOVIDA. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* =====================================================================
+   CALCULADORA DE CMV + PRECIFICAÇÃO POR QUILO
+   Ajinomoto Food Service
+
+   Layout alinhado ao padrão do site:
+   container 1280px, cards #F0EEED raio 12px sem borda,
+   corpo 18px/28px, apenas Quicksand.
+   Tudo escopado em .ajfs-calc
+   ===================================================================== */
+
+.ajfs-calc {
+  --ajfs-red:       #E10600;
+  --ajfs-red-hover: #BF0600;
+
+  --ajfs-ink:       #333333;
+  --ajfs-black:     #000000;
+  --ajfs-muted:     #807874;
+  --ajfs-faint:     #ADA6A3;
+
+  --ajfs-line:      #DFDAD8;
+  --ajfs-card:      #F0EEED;
+  --ajfs-card-2:    #F9F6F3;
+  --ajfs-white:     #FFFFFF;
+
+  --ajfs-success:   #97E106;
+  --ajfs-success-d: #4d7a02;
+  --ajfs-success-bg:#ECF9DC;
+  --ajfs-warning:   #F28E00;
+  --ajfs-warning-bg:#FEEDD3;
+  --ajfs-danger:    #E10666;
+  --ajfs-danger-bg: #FCD7E0;
+
+  --ajfs-r:         8px;
+  --ajfs-r-card:    12px;
+
+  /* Folga ao rolar até o resultado. Ajuste para a altura real
+     do cabeçalho fixo do site, senão o topo fica escondido atrás dele. */
+  --ajfs-scroll-offset: 96px;
+
+  --ajfs-font: "Quicksand", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  font-family: var(--ajfs-font);
+  color: var(--ajfs-ink);
+  font-size: 18px;
+  line-height: 28px;
+  width: 100%;
+}
+.ajfs-calc *, .ajfs-calc *::before, .ajfs-calc *::after { box-sizing: border-box; }
+
+/* Blindagem contra o tema hospedeiro.
+   Regras amplas do site (ex.: "p, span, div { letter-spacing: 3px }") são
+   herdadas para dentro do componente e desconfiguram a tipografia.
+   Este bloco vem cedo de propósito: as regras próprias, mais abaixo e com
+   especificidade igual ou maior, continuam vencendo. */
+.ajfs-calc, .ajfs-calc * {
+  font-family: var(--ajfs-font);
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-indent: 0;
+  text-shadow: none;
+  font-style: normal;
+  text-transform: none;
+}
+
+.ajfs-wrap { width: 100%; max-width: 1280px; margin: 0 auto; }
+
+/* ---------- Cabeçalho ---------- */
+.ajfs-head { margin-bottom: 40px; }
+/* !important nos títulos: muitos temas WordPress declaram
+   "h2, h3, h4 { color: ... !important }", e sem isso o componente
+   herda a cor do tema no lugar da cor da marca. */
+.ajfs-calc h2.ajfs-title {
+  font-family: var(--ajfs-font);
+  font-size: clamp(26px, 3.2vw, 38px);
+  line-height: 1.26;
+  font-weight: 700;
+  color: var(--ajfs-ink) !important;
+  margin: 0 0 16px;
+}
+.ajfs-lede {
+  font-size: 18px; line-height: 28px; font-weight: 400;
+  color: var(--ajfs-black); margin: 0; max-width: none;
+}
+
+/* ---------- Cards de etapa ---------- */
+.ajfs-card {
+  background: var(--ajfs-card);
+  border: 0;
+  border-radius: var(--ajfs-r-card);
+  padding: 36px;
+  margin-bottom: 24px;
+}
+@media (max-width: 640px) { .ajfs-card { padding: 24px 20px; } }
+
+.ajfs-eyebrow {
+  font-size: 14px; font-weight: 700; color: var(--ajfs-red);
+  margin: 0 0 6px; line-height: 20px;
+}
+.ajfs-card h3 {
+  font-size: clamp(20px, 2.2vw, 24px); line-height: 1.32; font-weight: 700;
+  color: var(--ajfs-ink) !important; margin: 0 0 8px;
+}
+.ajfs-card-sub {
+  font-size: 17px; line-height: 27px; font-weight: 400;
+  color: var(--ajfs-muted); margin: 0 0 28px; max-width: none;
+}
+
+/* ---------- Campos ---------- */
+.ajfs-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 24px; }
+.ajfs-grid .ajfs-span2 { grid-column: 1 / -1; }
+@media (max-width: 700px) { .ajfs-grid { grid-template-columns: minmax(0,1fr); gap: 20px; } }
+
+.ajfs-field { display: flex; flex-direction: column; min-width: 0; }
+.ajfs-field > label {
+  font-size: 16px; line-height: 24px; font-weight: 700; color: var(--ajfs-ink);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.ajfs-hint {
+  font-size: 14px; line-height: 21px; color: var(--ajfs-muted); font-weight: 500;
+  margin-top: 9px; overflow-wrap: break-word;
+}
+.ajfs-control {
+  display: flex; align-items: stretch;
+  background: var(--ajfs-white);
+  border: 1px solid var(--ajfs-line);
+  border-radius: var(--ajfs-r);
+  overflow: hidden;
+  transition: border-color .15s, box-shadow .15s;
+}
+.ajfs-control:focus-within {
+  border-color: var(--ajfs-red);
+  box-shadow: 0 0 0 3px rgba(225,6,0,.13);
+}
+.ajfs-control .ajfs-affix {
+  flex: 0 0 auto; display: flex; align-items: center; padding: 0 16px;
+  background: var(--ajfs-card-2); color: var(--ajfs-muted);
+  font-size: 15px; font-weight: 700; white-space: nowrap;
+  border-right: 1px solid var(--ajfs-line);
+}
+.ajfs-control .ajfs-affix.ajfs-suffix { border-right: 0; border-left: 1px solid var(--ajfs-line); }
+.ajfs-control input {
+  flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent;
+  font-family: var(--ajfs-font);
+  font-size: 17px; font-weight: 600; color: var(--ajfs-ink);
+  padding: 15px 16px; text-align: right;
+}
+.ajfs-control input::placeholder { color: var(--ajfs-faint); font-weight: 500; }
+
+/* Campo preenchido automaticamente e que o usuário pode sobrescrever.
+   Não confundir com "editável": todos os campos são editáveis. */
+.ajfs-control.ajfs-auto { border-left: 4px solid var(--ajfs-red); }
+.ajfs-control.ajfs-auto input { font-weight: 700; font-size: 18px; }
+.ajfs-control.ajfs-invalid { border-color: var(--ajfs-danger); box-shadow: 0 0 0 3px rgba(225,6,102,.12); }
+
+.ajfs-relink {
+  background: none; border: 0; padding: 0; margin-top: 10px;
+  font-family: var(--ajfs-font); font-size: 14px; font-weight: 700;
+  color: var(--ajfs-red); cursor: pointer; text-align: left;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.ajfs-relink:hover { color: var(--ajfs-red-hover); }
+.ajfs-relink[hidden] { display: none; }
+
+/* Escala de referência do CMV */
+.ajfs-scale { margin-top: 14px; }
+.ajfs-scale-track {
+  position: relative; height: 7px; border-radius: 999px; overflow: hidden;
+  background: linear-gradient(to right,
+    var(--ajfs-success) 0%, var(--ajfs-success) 34%,
+    var(--ajfs-warning) 34%, var(--ajfs-warning) 60%,
+    var(--ajfs-danger) 60%, var(--ajfs-danger) 100%);
+}
+.ajfs-scale-mark {
+  position: absolute; top: -4px; width: 3px; height: 15px;
+  background: var(--ajfs-ink); border-radius: 2px;
+  transform: translateX(-50%); transition: left .2s ease;
+}
+.ajfs-scale-legend {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 13px; line-height: 19px; font-weight: 600; color: var(--ajfs-muted); margin-top: 8px;
+}
+
+/* ---------- Erros e ações ---------- */
+.ajfs-errors {
+  background: var(--ajfs-danger-bg); border-radius: var(--ajfs-r-card);
+  padding: 20px 24px; margin-bottom: 24px;
+  font-size: 16px; line-height: 25px; font-weight: 600; color: #99044a;
+}
+.ajfs-errors[hidden] { display: none; }
+.ajfs-errors ul { margin: 0; padding-left: 20px; }
+.ajfs-errors li { margin: 4px 0; }
+
+.ajfs-actions { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 48px; }
+.ajfs-btn {
+  display: inline-flex; align-items: center; gap: 12px;
+  font-family: var(--ajfs-font);
+  font-size: 16px; line-height: 24px; font-weight: 700; text-transform: uppercase;
+  border-radius: var(--ajfs-r); padding: 16px 32px;
+  border: 2px solid transparent; cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.ajfs-btn[hidden] { display: none; }
+.ajfs-btn svg { flex: 0 0 auto; }
+.ajfs-btn-primary { background: var(--ajfs-red); color: #fff; }
+.ajfs-btn-primary:hover { background: var(--ajfs-red-hover); }
+.ajfs-btn-ghost { background: transparent; color: var(--ajfs-ink); border-color: var(--ajfs-line); }
+.ajfs-btn-ghost:hover { border-color: var(--ajfs-red); color: var(--ajfs-red); }
+
+/* ---------- Resultado ---------- */
+.ajfs-result[hidden] { display: none; }
+.ajfs-result { margin-bottom: 48px; scroll-margin-top: var(--ajfs-scroll-offset); }
+
+.ajfs-stale {
+  background: var(--ajfs-warning-bg); color: #8a5100;
+  padding: 16px 24px; border-radius: var(--ajfs-r-card); margin-bottom: 20px;
+  font-size: 15px; line-height: 23px; font-weight: 700;
+}
+.ajfs-stale[hidden] { display: none; }
+
+/* Faixa vermelha com o preço */
+.ajfs-hero {
+  background: var(--ajfs-red); color: #fff;
+  border-radius: var(--ajfs-r-card);
+  padding: 40px; margin-bottom: 24px;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; flex-wrap: wrap;
+}
+@media (max-width: 640px) { .ajfs-hero { padding: 28px 22px; } }
+.ajfs-hero-main { min-width: 0; }
+.ajfs-hero-label {
+  font-size: 14px; line-height: 20px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(255,255,255,.85); margin-bottom: 10px;
+}
+.ajfs-hero-value {
+  font-size: clamp(38px, 6vw, 60px); line-height: 1.06; font-weight: 700;
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+}
+.ajfs-hero-value .ajfs-unit { font-size: 20px; font-weight: 700; color: rgba(255,255,255,.85); }
+.ajfs-hero-sub { margin-top: 14px; font-size: 16px; line-height: 24px; font-weight: 500; color: rgba(255,255,255,.92); }
+.ajfs-hero-side {
+  background: rgba(255,255,255,.14); border-radius: var(--ajfs-r);
+  padding: 16px 22px; min-width: 0;
+}
+.ajfs-hero-side-l { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.85); }
+.ajfs-hero-side-v { font-size: 26px; font-weight: 700; line-height: 1.2; margin-top: 4px; }
+
+/* Métricas */
+.ajfs-metrics {
+  display: grid; grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 20px; margin-bottom: 24px;
+}
+@media (max-width: 980px) { .ajfs-metrics { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 520px) { .ajfs-metrics { grid-template-columns: minmax(0,1fr); } }
+.ajfs-metric {
+  background: var(--ajfs-card); border-radius: var(--ajfs-r-card); padding: 24px;
+}
+.ajfs-metric-name { font-size: 15px; line-height: 22px; font-weight: 700; color: var(--ajfs-ink); }
+.ajfs-metric-name small { display: block; font-size: 13px; line-height: 19px; color: var(--ajfs-muted); font-weight: 500; margin-top: 2px; }
+.ajfs-metric-val { font-size: 28px; line-height: 1.2; font-weight: 700; color: var(--ajfs-ink); margin-top: 12px; }
+.ajfs-metric-val.ajfs-pos { color: var(--ajfs-success-d); }
+.ajfs-metric-val.ajfs-neg { color: var(--ajfs-danger); }
+.ajfs-tag {
+  display: inline-block; margin-top: 10px;
+  font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 4px;
+}
+.ajfs-tag.ok   { background: var(--ajfs-success-bg); color: var(--ajfs-success-d); }
+.ajfs-tag.warn { background: var(--ajfs-warning-bg); color: #a35f00; }
+.ajfs-tag.bad  { background: var(--ajfs-danger-bg);  color: #a80449; }
+
+/* Composição do preço */
+.ajfs-comp { background: var(--ajfs-card); border-radius: var(--ajfs-r-card); padding: 32px; margin-bottom: 24px; }
+@media (max-width: 640px) { .ajfs-comp { padding: 24px 20px; } }
+.ajfs-comp h4 { font-size: 20px; line-height: 28px; font-weight: 700; color: var(--ajfs-ink) !important; margin: 0 0 20px; }
+.ajfs-bar {
+  display: flex; height: 40px; border-radius: var(--ajfs-r); overflow: hidden;
+  background: var(--ajfs-white);
+}
+.ajfs-bar span { display: block; height: 100%; transition: width .3s cubic-bezier(.4,0,.2,1); min-width: 0; }
+.ajfs-seg-cmv { background: var(--ajfs-red); }
+.ajfs-seg-fix { background: var(--ajfs-warning); }
+.ajfs-seg-var { background: var(--ajfs-faint); }
+.ajfs-seg-luc { background: var(--ajfs-success); }
+.ajfs-bar-note { margin: 14px 0 0; font-size: 15px; line-height: 23px; font-weight: 700; color: var(--ajfs-danger); }
+.ajfs-bar-note[hidden] { display: none; }
+
+.ajfs-legend {
+  display: grid; grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 16px; margin-top: 22px;
+}
+/* 4 colunas só quando há largura real: abaixo disso "Desp. variáveis" quebra em duas linhas */
+@media (max-width: 900px) { .ajfs-legend { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 420px) { .ajfs-legend { grid-template-columns: minmax(0,1fr); } }
+.ajfs-legend-item { display: flex; align-items: center; gap: 10px; font-size: 15px; min-width: 0; }
+.ajfs-legend-dot { flex: 0 0 auto; width: 13px; height: 13px; border-radius: 3px; }
+.ajfs-legend-name { color: var(--ajfs-muted); font-weight: 600; overflow-wrap: break-word; }
+.ajfs-legend-val { margin-left: auto; font-weight: 700; color: var(--ajfs-ink); white-space: nowrap; }
+
+/* Diagnóstico */
+.ajfs-note { background: var(--ajfs-card-2); border-radius: var(--ajfs-r-card); padding: 32px; }
+@media (max-width: 640px) { .ajfs-note { padding: 24px 20px; } }
+.ajfs-note-title { font-size: 20px; line-height: 28px; font-weight: 700; color: var(--ajfs-red); margin-bottom: 10px; }
+.ajfs-note-body { font-size: 17px; line-height: 27px; font-weight: 400; color: var(--ajfs-ink); }
+.ajfs-note-body b { font-weight: 700; }
+.ajfs-note.ajfs-alert { background: var(--ajfs-danger-bg); }
+.ajfs-note.ajfs-alert .ajfs-note-title { color: #a80449; }
+
+/* Estado inicial */
+.ajfs-empty {
+  background: var(--ajfs-card-2); border-radius: var(--ajfs-r-card);
+  padding: 56px 32px; text-align: center; margin-bottom: 48px;
+}
+.ajfs-empty[hidden] { display: none; }
+.ajfs-empty h4 { font-size: 20px; line-height: 28px; font-weight: 700; color: var(--ajfs-ink) !important; margin: 0 0 8px; }
+.ajfs-empty p { font-size: 17px; line-height: 27px; color: var(--ajfs-muted); margin: 0; font-weight: 400; }
+
+/* ---------- Rodapé ---------- */
+.ajfs-foot {
+  border-top: 1px solid var(--ajfs-line); padding-top: 32px;
+  font-size: 16px; line-height: 26px; color: var(--ajfs-muted); font-weight: 400;
+}
+.ajfs-foot h4 { font-size: 18px; line-height: 26px; font-weight: 700; color: var(--ajfs-ink) !important; margin: 0 0 14px; }
+.ajfs-foot ul { margin: 0; padding-left: 22px; }
+.ajfs-foot li { margin-bottom: 8px; }
+/* sem monospace: o site inteiro roda só em Quicksand */
+.ajfs-foot .ajfs-formula {
+  font-family: var(--ajfs-font); font-weight: 600; font-style: italic;
+  color: var(--ajfs-ink);
+}
+
+.ajfs-sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+</style>
+</head>
+<body style="margin:0;padding:40px 20px;background:#FFFFFF;">
+
+<div class="ajfs-calc">
+<div class="ajfs-wrap">
+
+  <header class="ajfs-head">
+    <h2 class="ajfs-title">Calculadora de CMV e Precificação por Quilo</h2>
+    <p class="ajfs-lede">
+      Para restaurantes self-service e por quilo. Calcule o custo real de cada quilo servido
+      e o preço de venda que sustenta a sua margem.
+    </p>
+  </header>
+
+  <!-- ETAPA 1 -->
+  <section class="ajfs-card">
+    <p class="ajfs-eyebrow">Etapa 1</p>
+    <h3>CMV por quilo</h3>
+    <p class="ajfs-card-sub">Use os dados do último período fechado: mês, quinzena ou semana.</p>
+
+    <div class="ajfs-grid">
+      <div class="ajfs-field">
+        <label for="ajfs-ei">Estoque inicial</label>
+        <div class="ajfs-control">
+          <span class="ajfs-affix">R$</span>
+          <input type="text" inputmode="decimal" id="ajfs-ei" data-money placeholder="0,00">
+        </div>
+      </div>
+
+      <div class="ajfs-field">
+        <label for="ajfs-compras">Compras no período</label>
+        <div class="ajfs-control">
+          <span class="ajfs-affix">R$</span>
+          <input type="text" inputmode="decimal" id="ajfs-compras" data-money placeholder="0,00">
+        </div>
+      </div>
+
+      <div class="ajfs-field">
+        <label for="ajfs-ef">Estoque final</label>
+        <div class="ajfs-control">
+          <span class="ajfs-affix">R$</span>
+          <input type="text" inputmode="decimal" id="ajfs-ef" data-money placeholder="0,00">
+        </div>
+      </div>
+
+      <div class="ajfs-field">
+        <label for="ajfs-kg">Quilos vendidos</label>
+        <div class="ajfs-control">
+          <input type="text" inputmode="decimal" id="ajfs-kg" data-num placeholder="0" aria-describedby="ajfs-kg-hint">
+          <span class="ajfs-affix ajfs-suffix">kg</span>
+        </div>
+        <span class="ajfs-hint" id="ajfs-kg-hint">Total vendido no balcão no período.</span>
+      </div>
+
+      <div class="ajfs-field ajfs-span2">
+        <label for="ajfs-cmv">CMV por quilo</label>
+        <div class="ajfs-control ajfs-auto">
+          <span class="ajfs-affix">R$</span>
+          <input type="text" inputmode="decimal" id="ajfs-cmv" data-money placeholder="0,00" aria-describedby="ajfs-cmv-hint">
+          <span class="ajfs-affix ajfs-suffix">/ kg</span>
+        </div>
+        <span class="ajfs-hint" id="ajfs-cmv-hint">Preenchido automaticamente pelos campos acima. Edite para usar outro valor.</span>
+        <button type="button" class="ajfs-relink" id="ajfs-recalc-cmv" hidden>Voltar ao valor calculado</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ETAPA 2 -->
+  <section class="ajfs-card">
+    <p class="ajfs-eyebrow">Etapa 2</p>
+    <h3>Precificação</h3>
+    <p class="ajfs-card-sub">Defina a margem alvo e as despesas da operação.</p>
+
+    <div class="ajfs-grid">
+      <div class="ajfs-field">
+        <label for="ajfs-custo">Custo por quilo</label>
+        <div class="ajfs-control ajfs-auto">
+          <span class="ajfs-affix">R$</span>
+          <input type="text" inputmode="decimal" id="ajfs-custo" data-money placeholder="0,00" aria-describedby="ajfs-custo-hint">
+          <span class="ajfs-affix ajfs-suffix">/ kg</span>
+        </div>
+        <span class="ajfs-hint" id="ajfs-custo-hint">Vem do CMV acima. Ajuste para precificar com um custo projetado.</span>
+        <button type="button" class="ajfs-relink" id="ajfs-resync-custo" hidden>Usar o CMV calculado</button>
+      </div>
+
+      <div class="ajfs-field">
+        <label for="ajfs-margem-cmv">Margem de CMV desejada</label>
+        <div class="ajfs-control">
+          <input type="text" inputmode="decimal" id="ajfs-margem-cmv" data-num value="32" aria-describedby="ajfs-margem-cmv-hint">
+          <span class="ajfs-affix ajfs-suffix">% do preço</span>
+        </div>
+        <div class="ajfs-scale" aria-hidden="true">
+          <div class="ajfs-scale-track"><div class="ajfs-scale-mark" id="ajfs-scale-mark" style="left:32%"></div></div>
+          <div class="ajfs-scale-legend">
+            <span>Saudável até 34%</span><span>Atenção 34 a 60%</span><span>Crítico acima de 60%</span>
+          </div>
+        </div>
+        <span class="ajfs-hint" id="ajfs-margem-cmv-hint">Quanto o custo dos alimentos deve representar do preço. No self-service, entre 28% e 38%.</span>
+      </div>
+
+      <div class="ajfs-field">
+        <label for="ajfs-fixas">Despesas fixas mensais</label>
+        <div class="ajfs-control">
+          <span class="ajfs-affix">R$</span>
+          <input type="text" inputmode="decimal" id="ajfs-fixas" data-money placeholder="0,00" aria-describedby="ajfs-fixas-hint">
+        </div>
+        <span class="ajfs-hint" id="ajfs-fixas-hint">Aluguel, folha, energia, contador.</span>
+      </div>
+
+      <div class="ajfs-field">
+        <label for="ajfs-volume">Volume de vendas por mês</label>
+        <div class="ajfs-control">
+          <input type="text" inputmode="decimal" id="ajfs-volume" data-num placeholder="0" aria-describedby="ajfs-volume-hint">
+          <span class="ajfs-affix ajfs-suffix">kg</span>
+        </div>
+        <span class="ajfs-hint" id="ajfs-volume-hint">Quilos servidos por mês.</span>
+      </div>
+
+      <div class="ajfs-field">
+        <label for="ajfs-variaveis">Despesas variáveis</label>
+        <div class="ajfs-control">
+          <input type="text" inputmode="decimal" id="ajfs-variaveis" data-num value="12" aria-describedby="ajfs-variaveis-hint">
+          <span class="ajfs-affix ajfs-suffix">% do preço</span>
+        </div>
+        <span class="ajfs-hint" id="ajfs-variaveis-hint">Taxa de cartão, impostos, comissão de app.</span>
+      </div>
+
+      <div class="ajfs-field">
+        <label for="ajfs-margem-lucro">Margem de lucro desejada</label>
+        <div class="ajfs-control">
+          <input type="text" inputmode="decimal" id="ajfs-margem-lucro" data-num value="15" aria-describedby="ajfs-margem-lucro-hint">
+          <span class="ajfs-affix ajfs-suffix">%</span>
+        </div>
+        <span class="ajfs-hint" id="ajfs-margem-lucro-hint">Referência para comparação.</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="ajfs-errors" id="ajfs-errors" hidden role="alert"></div>
+
+  <div class="ajfs-actions">
+    <button type="button" class="ajfs-btn ajfs-btn-primary" id="ajfs-calc-btn">
+      <span id="ajfs-calc-label">Calcular</span>
+      <svg width="8" height="13" viewBox="0 0 8 13" fill="none" aria-hidden="true">
+        <path d="M1.5 1.5 6.5 6.5 1.5 11.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button type="button" class="ajfs-btn ajfs-btn-ghost" id="ajfs-copy" hidden>Copiar resumo</button>
+    <button type="button" class="ajfs-btn ajfs-btn-ghost" id="ajfs-reset">Limpar</button>
+  </div>
+
+  <!-- ESTADO INICIAL -->
+  <div class="ajfs-empty" id="ajfs-empty">
+    <h4>O resultado aparece aqui</h4>
+    <p>Preencha os campos acima e clique em calcular.</p>
+  </div>
+
+  <!-- RESULTADO -->
+  <section class="ajfs-result" id="ajfs-result" hidden aria-label="Resultado do cálculo">
+
+    <div class="ajfs-stale" id="ajfs-stale" hidden>
+      Valores alterados. Clique em recalcular para atualizar o resultado.
+    </div>
+
+    <div class="ajfs-hero">
+      <div class="ajfs-hero-main">
+        <div class="ajfs-hero-label">Preço de venda sugerido</div>
+        <div class="ajfs-hero-value" id="ajfs-r-preco" aria-live="polite">
+          R$ 0,00 <span class="ajfs-unit">/ kg</span>
+        </div>
+        <div class="ajfs-hero-sub" id="ajfs-r-preco-sub"></div>
+      </div>
+      <div class="ajfs-hero-side">
+        <div class="ajfs-hero-side-l">Lucro por quilo</div>
+        <div class="ajfs-hero-side-v" id="ajfs-r-lucro-hero">R$ 0,00</div>
+      </div>
+    </div>
+
+    <div class="ajfs-metrics">
+      <div class="ajfs-metric">
+        <div class="ajfs-metric-name">Margem de lucro real<small id="ajfs-r-meta-txt">Meta: 15%</small></div>
+        <div class="ajfs-metric-val" id="ajfs-r-margem">0,0%</div>
+        <span class="ajfs-tag ok" id="ajfs-r-tag">—</span>
+      </div>
+      <div class="ajfs-metric">
+        <div class="ajfs-metric-name">Lucro mensal estimado<small>No volume informado</small></div>
+        <div class="ajfs-metric-val" id="ajfs-r-lucro-mes">R$ 0,00</div>
+      </div>
+      <div class="ajfs-metric">
+        <div class="ajfs-metric-name">Ponto de equilíbrio<small>Onde a operação se paga</small></div>
+        <div class="ajfs-metric-val" id="ajfs-r-pe">0 kg</div>
+      </div>
+      <div class="ajfs-metric">
+        <div class="ajfs-metric-name">Rateio das despesas fixas<small>Por quilo servido</small></div>
+        <div class="ajfs-metric-val" id="ajfs-r-rateio">R$ 0,00</div>
+      </div>
+    </div>
+
+    <div class="ajfs-comp">
+      <h4>Composição do preço</h4>
+      <div class="ajfs-bar" role="img" aria-label="Distribuição do preço entre custo, despesas e lucro">
+        <span class="ajfs-seg-cmv" id="ajfs-seg-cmv" style="width:0%"></span>
+        <span class="ajfs-seg-fix" id="ajfs-seg-fix" style="width:0%"></span>
+        <span class="ajfs-seg-var" id="ajfs-seg-var" style="width:0%"></span>
+        <span class="ajfs-seg-luc" id="ajfs-seg-luc" style="width:0%"></span>
+      </div>
+      <p class="ajfs-bar-note" id="ajfs-bar-note" hidden></p>
+      <div class="ajfs-legend">
+        <div class="ajfs-legend-item">
+          <span class="ajfs-legend-dot" style="background:var(--ajfs-red)"></span>
+          <span class="ajfs-legend-name">CMV</span>
+          <span class="ajfs-legend-val" id="ajfs-l-cmv">0%</span>
+        </div>
+        <div class="ajfs-legend-item">
+          <span class="ajfs-legend-dot" style="background:var(--ajfs-warning)"></span>
+          <span class="ajfs-legend-name">Desp. fixas</span>
+          <span class="ajfs-legend-val" id="ajfs-l-fix">0%</span>
+        </div>
+        <div class="ajfs-legend-item">
+          <span class="ajfs-legend-dot" style="background:var(--ajfs-faint)"></span>
+          <span class="ajfs-legend-name">Desp. variáveis</span>
+          <span class="ajfs-legend-val" id="ajfs-l-var">0%</span>
+        </div>
+        <div class="ajfs-legend-item">
+          <span class="ajfs-legend-dot" style="background:var(--ajfs-success)"></span>
+          <span class="ajfs-legend-name">Lucro</span>
+          <span class="ajfs-legend-val" id="ajfs-l-luc">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ajfs-note" id="ajfs-note">
+      <div class="ajfs-note-title" id="ajfs-note-title"></div>
+      <div class="ajfs-note-body" id="ajfs-note-body"></div>
+    </div>
+  </section>
+
+  <div class="ajfs-foot">
+    <h4>Como as contas são feitas</h4>
+    <ul>
+      <li><b>CMV por quilo</b>: <span class="ajfs-formula">(estoque inicial + compras − estoque final) ÷ quilos vendidos</span></li>
+      <li><b>Preço de venda</b>: <span class="ajfs-formula">custo por quilo ÷ margem de CMV</span>, pelo método do markup divisor</li>
+      <li><b>Rateio das despesas fixas</b>: <span class="ajfs-formula">despesas fixas mensais ÷ volume mensal em quilos</span></li>
+      <li><b>Lucro por quilo</b>: <span class="ajfs-formula">preço − custo − rateio das fixas − despesas variáveis</span></li>
+      <li><b>Ponto de equilíbrio</b>: <span class="ajfs-formula">despesas fixas ÷ margem de contribuição por quilo</span></li>
+    </ul>
+    <p style="margin:16px 0 0">
+      O lucro mensal e o ponto de equilíbrio assumem que o volume de vendas não muda
+      quando o preço muda. Ao simular um aumento grande de preço, considere que a
+      procura tende a cair e a projeção fica otimista.
+    </p>
+    <p style="margin:10px 0 0">Os resultados são estimativas e não substituem a análise contábil do negócio.</p>
+  </div>
+
+  <p class="ajfs-sr" role="status" id="ajfs-sr-status"></p>
+</div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var root = document.querySelector('.ajfs-calc');
+  if (!root) return;
+  var $ = function (id) { return document.getElementById(id); };
+
+  var fmtBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  var fmtDec = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  var fmtInt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
+  var pct = function (v) { return fmtDec.format(v).replace(',00', '') + '%'; };
+
+  // Interpreta número no formato pt-BR. Atenção ao caso "1.000":
+  // sem este tratamento o parseFloat lê o ponto como decimal e devolve 1.
+  function parseNum(str) {
+    if (str === null || str === undefined) return 0;
+    var s = String(str).trim();
+    if (!s) return 0;
+    if (s.indexOf(',') !== -1) {
+      // vírgula é o separador decimal: os pontos são de milhar
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else if (/^\d{1,3}(\.\d{3})+$/.test(s)) {
+      // "1.000", "10.000", "1.234.567": pontos de milhar, sem casa decimal
+      s = s.replace(/\./g, '');
+    }
+    var n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function attachMoney(input) {
+    function render(cents) { input.value = fmtDec.format(cents / 100); }
+    input.addEventListener('input', function () {
+      var d = input.value.replace(/\D/g, '').replace(/^0+/, '');
+      if (!d) { input.value = ''; onEdit(input); return; }
+      if (d.length > 11) d = d.slice(0, 11);
+      render(parseInt(d, 10));
+      onEdit(input);
+    });
+    input.addEventListener('focus', function () {
+      requestAnimationFrame(function () {
+        var e = input.value.length;
+        try { input.setSelectionRange(e, e); } catch (err) {}
+      });
+    });
+    input.addEventListener('blur', function () {
+      if (input.value.trim()) render(Math.round(parseNum(input.value) * 100));
+    });
+  }
+
+  function attachNum(input) {
+    input.addEventListener('input', function () {
+      var c = input.value.replace(/[^\d.,]/g, '');
+      if (c !== input.value) input.value = c;
+      onEdit(input);
+    });
+    input.addEventListener('blur', function () {
+      var antes = input.value;
+      var v = parseNum(input.value);
+      if (input.value.trim()) input.value = (v % 1 === 0) ? fmtInt.format(v) : fmtDec.format(v);
+      // só reavalia se o valor mudou de fato: entrar e sair do campo
+      // sem editar não deve marcar o resultado como desatualizado
+      if (input.value !== antes) onEdit(input);
+    });
+  }
+
+  root.querySelectorAll('input[data-money]').forEach(attachMoney);
+  root.querySelectorAll('input[data-num]').forEach(attachNum);
+
+  /* -------- Vínculo entre campos -------- */
+  var cmvManual = false, custoManual = false;
+  var cmvSourceIds = ['ajfs-ei', 'ajfs-compras', 'ajfs-ef', 'ajfs-kg'];
+
+  function recalcCMV() {
+    if (cmvManual) return;
+    var kg = parseNum($('ajfs-kg').value);
+    var cmv = kg > 0
+      ? (parseNum($('ajfs-ei').value) + parseNum($('ajfs-compras').value) - parseNum($('ajfs-ef').value)) / kg
+      : 0;
+    if (cmv < 0 || !isFinite(cmv)) cmv = 0;
+    $('ajfs-cmv').value = cmv > 0 ? fmtDec.format(cmv) : '';
+    syncCusto();
+  }
+  function syncCusto() { if (!custoManual) $('ajfs-custo').value = $('ajfs-cmv').value; }
+
+  $('ajfs-cmv').addEventListener('input', function () {
+    cmvManual = true; $('ajfs-recalc-cmv').hidden = false; syncCusto();
+  });
+  $('ajfs-custo').addEventListener('input', function () {
+    custoManual = true; $('ajfs-resync-custo').hidden = false;
+  });
+  $('ajfs-recalc-cmv').addEventListener('click', function () {
+    cmvManual = false; $('ajfs-recalc-cmv').hidden = true; recalcCMV(); markStale();
+  });
+  $('ajfs-resync-custo').addEventListener('click', function () {
+    custoManual = false; $('ajfs-resync-custo').hidden = true; syncCusto(); markStale();
+  });
+
+  /* -------- Estado -------- */
+  var calculado = false;
+
+  function markStale() {
+    if (calculado) {
+      $('ajfs-stale').hidden = false;
+      $('ajfs-calc-label').textContent = 'Recalcular';
+    }
+  }
+
+  function onEdit(input) {
+    if (cmvSourceIds.indexOf(input.id) !== -1) recalcCMV();
+    if (input.id === 'ajfs-margem-cmv') {
+      var m = parseNum(input.value);
+      $('ajfs-scale-mark').style.left = Math.min(100, Math.max(0, m)) + '%';
+    }
+    var c = input.closest('.ajfs-control');
+    if (c) c.classList.remove('ajfs-invalid');
+    input.removeAttribute('aria-invalid');
+    markStale();
+  }
+
+  /* -------- Validação -------- */
+  function markFieldError(id) {
+    var input = $(id);
+    var c = input.closest('.ajfs-control');
+    if (c) c.classList.add('ajfs-invalid');
+    input.setAttribute('aria-invalid', 'true');
+  }
+
+  function limparErros() {
+    root.querySelectorAll('.ajfs-control').forEach(function (c) { c.classList.remove('ajfs-invalid'); });
+    root.querySelectorAll('input').forEach(function (i) { i.removeAttribute('aria-invalid'); });
+  }
+
+  function validar() {
+    limparErros();
+    var erros = [];
+    var custo   = parseNum($('ajfs-custo').value);
+    var mCMV    = parseNum($('ajfs-margem-cmv').value);
+    var fixas   = parseNum($('ajfs-fixas').value);
+    var volume  = parseNum($('ajfs-volume').value);
+    var pVar    = parseNum($('ajfs-variaveis').value);
+    var metaLuc = parseNum($('ajfs-margem-lucro').value);
+
+    if (custo <= 0) { markFieldError('ajfs-custo'); erros.push('Informe o custo por quilo, ou preencha a etapa 1 para calculá-lo.'); }
+    if (!(mCMV > 0 && mCMV < 100)) { markFieldError('ajfs-margem-cmv'); erros.push('A margem de CMV precisa ficar entre 1% e 99%.'); }
+    if (fixas > 0 && volume <= 0) { markFieldError('ajfs-volume'); erros.push('Informe o volume mensal em quilos para ratear as despesas fixas.'); }
+    // Percentuais fora de faixa produziriam um veredito de "Prejuízo" enganoso:
+    // o problema é o número digitado, não a operação do cliente.
+    if (!(pVar >= 0 && pVar < 100)) { markFieldError('ajfs-variaveis'); erros.push('As despesas variáveis precisam ficar entre 0% e 99%.'); }
+    if (!(metaLuc >= 0 && metaLuc < 100)) { markFieldError('ajfs-margem-lucro'); erros.push('A margem de lucro desejada precisa ficar entre 0% e 99%.'); }
+    return erros;
+  }
+
+  function mostrarErros(erros) {
+    var box = $('ajfs-errors');
+    if (!erros.length) { box.hidden = true; box.innerHTML = ''; return; }
+    box.innerHTML = '<ul>' + erros.map(function (e) { return '<li>' + e + '</li>'; }).join('') + '</ul>';
+    box.hidden = false;
+  }
+
+  /* -------- Cálculo -------- */
+  function setSeg(id, p) { $(id).style.width = Math.max(0, p) + '%'; }
+
+  function render() {
+    var custo   = parseNum($('ajfs-custo').value);
+    var mCMV    = parseNum($('ajfs-margem-cmv').value);
+    var fixas   = parseNum($('ajfs-fixas').value);
+    var volume  = parseNum($('ajfs-volume').value);
+    var pVar    = parseNum($('ajfs-variaveis').value);
+    var metaLuc = parseNum($('ajfs-margem-lucro').value);
+
+    var preco      = custo / (mCMV / 100);
+    var rateioFix  = volume > 0 ? fixas / volume : 0;
+    var custoVar   = preco * (pVar / 100);
+    var lucroKg    = preco - custo - rateioFix - custoVar;
+    var margemReal = (lucroKg / preco) * 100;
+    var lucroMes   = lucroKg * volume;
+    var mcUnit     = preco - custo - custoVar;
+    var pe         = mcUnit > 0 ? fixas / mcUnit : 0;
+
+    $('ajfs-r-meta-txt').textContent = 'Meta: ' + pct(metaLuc);
+    $('ajfs-r-preco').innerHTML = fmtBRL.format(preco) + ' <span class="ajfs-unit">/ kg</span>';
+    $('ajfs-r-preco-sub').textContent =
+      'CMV a ' + pct(mCMV) + ' sobre um custo de ' + fmtBRL.format(custo) + ' por quilo.';
+    $('ajfs-r-lucro-hero').textContent = fmtBRL.format(lucroKg);
+
+    var pCMV = (custo / preco) * 100;
+    var pFix = (rateioFix / preco) * 100;
+    var pVr  = pVar;
+    var pLuc = margemReal;
+
+    var nota = $('ajfs-bar-note');
+
+    if (pLuc >= 0) {
+      var soma = pCMV + pFix + pVr + pLuc;
+      var k = soma > 0 ? 100 / soma : 0;
+      setSeg('ajfs-seg-cmv', pCMV * k); setSeg('ajfs-seg-fix', pFix * k);
+      setSeg('ajfs-seg-var', pVr * k);  setSeg('ajfs-seg-luc', pLuc * k);
+      nota.hidden = true;
+    } else {
+      var custoTot = pCMV + pFix + pVr;
+      var k2 = custoTot > 0 ? 100 / custoTot : 0;
+      setSeg('ajfs-seg-cmv', pCMV * k2); setSeg('ajfs-seg-fix', pFix * k2);
+      setSeg('ajfs-seg-var', pVr * k2);  setSeg('ajfs-seg-luc', 0);
+      nota.hidden = false;
+      nota.textContent = 'Sem fatia de lucro: os custos consomem ' + fmtDec.format(custoTot) +
+        '% do preço, ' + fmtDec.format(custoTot - 100) + ' ponto(s) além do que ele cobre.';
+    }
+
+    $('ajfs-l-cmv').textContent = fmtDec.format(pCMV) + '%';
+    $('ajfs-l-fix').textContent = fmtDec.format(pFix) + '%';
+    $('ajfs-l-var').textContent = fmtDec.format(pVr) + '%';
+    $('ajfs-l-luc').textContent = fmtDec.format(pLuc) + '%';
+
+    $('ajfs-r-margem').textContent = fmtDec.format(margemReal) + '%';
+    $('ajfs-r-margem').className = 'ajfs-metric-val ' + (margemReal >= 0 ? 'ajfs-pos' : 'ajfs-neg');
+
+    var tag = $('ajfs-r-tag');
+    if (lucroKg < 0) { tag.textContent = 'Prejuízo'; tag.className = 'ajfs-tag bad'; }
+    else if (margemReal + 0.05 >= metaLuc) { tag.textContent = 'Meta atingida'; tag.className = 'ajfs-tag ok'; }
+    else { tag.textContent = 'Abaixo da meta'; tag.className = 'ajfs-tag warn'; }
+
+    // Sem volume informado não há como projetar o mês nem ratear a estrutura.
+    // Mostrar R$ 0,00 nesses casos daria a impressão de lucro zero, e não de dado ausente.
+    var temVolume = volume > 0;
+    if (temVolume) {
+      $('ajfs-r-lucro-mes').textContent = fmtBRL.format(lucroMes);
+      $('ajfs-r-lucro-mes').className = 'ajfs-metric-val ' + (lucroMes >= 0 ? 'ajfs-pos' : 'ajfs-neg');
+      $('ajfs-r-rateio').textContent = fmtBRL.format(rateioFix);
+    } else {
+      $('ajfs-r-lucro-mes').textContent = '—';
+      $('ajfs-r-lucro-mes').className = 'ajfs-metric-val';
+      $('ajfs-r-rateio').textContent = '—';
+    }
+    $('ajfs-r-pe').textContent = (fixas > 0 && mcUnit > 0)
+      ? fmtInt.format(Math.ceil(pe)) + ' kg'
+      : '—';
+
+    var box = $('ajfs-note'), ttl = $('ajfs-note-title'), bdy = $('ajfs-note-body');
+    var denom = 1 - (pVar / 100) - (metaLuc / 100);
+
+    if (lucroKg < 0) {
+      box.className = 'ajfs-note ajfs-alert';
+      ttl.textContent = 'Preço abaixo do custo total';
+      bdy.innerHTML = 'Neste preço a operação perde <b>' + fmtBRL.format(Math.abs(lucroKg)) +
+        '</b> a cada quilo servido. Reduza a margem de CMV alvo, corte custo de insumo ou dilua as despesas fixas em mais volume.';
+    } else if (denom > 0) {
+      var precoMeta = (custo + rateioFix) / denom;
+      var cmvMeta = (custo / precoMeta) * 100;
+      box.className = 'ajfs-note';
+      if (margemReal + 0.05 >= metaLuc) {
+        ttl.textContent = 'Acima da meta';
+        bdy.innerHTML = 'O preço sugerido entrega <b>' + fmtDec.format(margemReal) +
+          '%</b> de lucro, ' + fmtDec.format(margemReal - metaLuc) + ' ponto(s) acima da meta de ' + pct(metaLuc) + '.';
+      } else {
+        // Segundo caminho: segurar o preço e cortar o custo. Como a calculadora
+        // deriva o preço do custo, é preciso dizer também qual margem de CMV usar,
+        // senão o preço cai junto e a recomendação não se sustenta na própria ferramenta.
+        var custoAlvo = Math.max(0, preco * denom - rateioFix);
+        var cmvAlvo = preco > 0 ? (custoAlvo / preco) * 100 : 0;
+        ttl.textContent = 'Para chegar a ' + pct(metaLuc);
+        bdy.innerHTML = 'O preço precisaria ser <b>' + fmtBRL.format(precoMeta) +
+          ' por quilo</b>, o que equivale a uma margem de CMV de <b>' + fmtDec.format(cmvMeta) +
+          '%</b>. Outro caminho: manter o preço em <b>' + fmtBRL.format(preco) +
+          '</b>, baixar o custo por quilo para <b>' + fmtBRL.format(custoAlvo) +
+          '</b> e ajustar a margem de CMV para <b>' + fmtDec.format(cmvAlvo) + '%</b>.';
+      }
+    } else {
+      box.className = 'ajfs-note ajfs-alert';
+      ttl.textContent = 'Meta inalcançável com estes percentuais';
+      bdy.innerHTML = 'Despesas variáveis (<b>' + fmtDec.format(pVar) + '%</b>) mais a margem de lucro desejada (<b>' +
+        fmtDec.format(metaLuc) + '%</b>) somam 100% ou mais do preço. Reduza uma das duas para sobrar espaço ao custo do alimento.';
+    }
+
+    // Sem despesas fixas ou sem volume, o lucro exibido ignora o custo de estrutura
+    // e fica otimista. Avisa em vez de deixar o número passar como definitivo.
+    if (!temVolume || fixas <= 0) {
+      bdy.innerHTML += '<br><br><b>Atenção:</b> sem despesas fixas e volume mensal preenchidos, ' +
+        'o lucro acima considera apenas o custo do alimento e as despesas variáveis. ' +
+        'O custo de estrutura ainda não entrou na conta.';
+    }
+  }
+
+  /* -------- Ações -------- */
+  function calcular() {
+    var erros = validar();
+    mostrarErros(erros);
+    if (erros.length) {
+      $('ajfs-sr-status').textContent = 'Não foi possível calcular. ' + erros.join(' ');
+      var primeiro = root.querySelector('.ajfs-control.ajfs-invalid input');
+      if (primeiro) primeiro.focus();
+      return;
+    }
+    render();
+    calculado = true;
+    $('ajfs-empty').hidden = true;
+    $('ajfs-result').hidden = false;
+    $('ajfs-stale').hidden = true;
+    $('ajfs-copy').hidden = false;
+    $('ajfs-calc-label').textContent = 'Recalcular';
+    $('ajfs-sr-status').textContent = 'Cálculo concluído. Preço sugerido ' + $('ajfs-r-preco').textContent.trim();
+    $('ajfs-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  $('ajfs-calc-btn').addEventListener('click', calcular);
+
+  // Enter em qualquer campo calcula. Sem <form> de propósito: dentro do
+  // WordPress um submit acidental recarregaria a página e perderia os dados.
+  root.querySelectorAll('input').forEach(function (input) {
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      input.blur(); // aplica a formatação do campo antes de ler os valores
+      calcular();
+    });
+  });
+
+  $('ajfs-reset').addEventListener('click', function () {
+    root.querySelectorAll('input').forEach(function (i) { i.value = ''; });
+    $('ajfs-margem-cmv').value = '32';
+    $('ajfs-variaveis').value = '12';
+    $('ajfs-margem-lucro').value = '15';
+    $('ajfs-scale-mark').style.left = '32%';
+    cmvManual = false; custoManual = false; calculado = false;
+    $('ajfs-recalc-cmv').hidden = true;
+    $('ajfs-resync-custo').hidden = true;
+    $('ajfs-result').hidden = true;
+    $('ajfs-empty').hidden = false;
+    $('ajfs-stale').hidden = true;
+    $('ajfs-copy').hidden = true;
+    $('ajfs-calc-label').textContent = 'Calcular';
+    mostrarErros([]);
+    limparErros();
+    $('ajfs-ei').focus();
+  });
+
+  $('ajfs-copy').addEventListener('click', function () {
+    var ou = function (v, sufixo) { return v && v.trim() ? v + (sufixo || '') : 'não informado'; };
+    var txt = [
+      'CALCULADORA DE CMV E PRECIFICAÇÃO POR QUILO',
+      '',
+      'DADOS INFORMADOS',
+      'CMV por quilo: R$ ' + ou($('ajfs-cmv').value),
+      'Custo por quilo: R$ ' + ou($('ajfs-custo').value),
+      'Margem de CMV desejada: ' + ou($('ajfs-margem-cmv').value, '%'),
+      'Despesas fixas mensais: R$ ' + ou($('ajfs-fixas').value),
+      'Volume de vendas por mês: ' + ou($('ajfs-volume').value, ' kg'),
+      'Despesas variáveis: ' + ou($('ajfs-variaveis').value, '%'),
+      'Margem de lucro desejada: ' + ou($('ajfs-margem-lucro').value, '%'),
+      '',
+      'RESULTADO',
+      'Preço de venda sugerido: ' + $('ajfs-r-preco').textContent.trim().replace(/\s+/g, ' '),
+      'Lucro por quilo: ' + $('ajfs-r-lucro-hero').textContent,
+      'Margem de lucro real: ' + $('ajfs-r-margem').textContent + ' (' + $('ajfs-r-tag').textContent + ')',
+      'Lucro mensal estimado: ' + $('ajfs-r-lucro-mes').textContent,
+      'Ponto de equilíbrio: ' + $('ajfs-r-pe').textContent,
+      'Rateio das despesas fixas: ' + $('ajfs-r-rateio').textContent,
+      '',
+      'Calculadora gratuita da Ajinomoto Food Service.',
+      'Estimativa de apoio à decisão; não substitui a análise contábil do negócio.'
+    ].join('\n');
+
+    var ok = function () {
+      var b = $('ajfs-copy'), old = b.textContent;
+      b.textContent = 'Copiado';
+      $('ajfs-sr-status').textContent = 'Resumo copiado.';
+      setTimeout(function () { b.textContent = old; }, 1800);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(ok, function () {});
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); ok(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
